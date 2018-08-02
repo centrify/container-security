@@ -1,0 +1,93 @@
+# dockerfile.centos.adjoin
+#
+# Dockerfile to build auto-adjoin CentOS docker image
+#
+
+FROM centos:7
+#MAINTAINER
+#LABEL
+
+# install the required packages
+RUN yum -y update && yum -y install \
+    openssh-clients \
+    openssh-server \
+    vim \
+    && yum clean all
+
+# steps needed to use systemd enabled docker containers.
+ENV container docker
+RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i = \
+    systemd-tmpfiles-setup.service ] || rm -f $i; done);
+VOLUME [ "/sys/fs/cgroup" ]
+
+# systemd defines that shutdown signal as SIGRTMIN+3
+STOPSIGNAL SIGRTMIN+3
+
+# sshd setup
+RUN mkdir /var/run/sshd \
+    && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' \
+    && sed -i '/^#\?PermitRootLogin/c\PermitRootLogin yes' /etc/ssh/sshd_config \
+    && sed -i '/^#\?ChallengeResponseAuthentication/c\ChallengeResponseAuthentication yes' /etc/ssh/sshd_config \
+    && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+RUN systemctl enable sshd.service
+EXPOSE 22
+
+# add Centrify repo
+COPY centrify.repo /etc/yum.repos.d/centrify.repo
+RUN chmod 644 /etc/yum.repos.d/centrify.repo
+
+# install Centrify packages
+RUN yum -y install \
+    CentrifyDC \
+    && yum clean all
+
+#
+# build time arguments
+# DOMAIN: AD domain
+# ADJOINER: AD user that has proper permissions to join the zone
+# ZONE: zone to join the system to
+# TENANT_URL: tenant URL
+#
+ARG DOMAIN
+ARG ADJOINER
+ARG ZONE
+ARG TENANT_URL
+
+RUN : "${DOMAIN:?Build argument DOMAIN must be set.}"
+RUN : "${ADJOINER:?Build argument ADJOINER must be set.}"
+
+#
+# environment variables
+ENV DOMAIN $DOMAIN
+ENV ADJOINER $ADJOINER
+ENV ZONE $ZONE
+ENV URL $TENANT_URL
+
+# the following variables are optional
+# OU: OU/container to create computer account in, in DN format
+# NAME: specify the computer name instead of using the default
+# COMPUTER_ROLES: option computer roles
+# ADJOIN_OPTION: optional parameters for adjoin
+ENV OU="" NAME="" ADJOIN_OPTION=""
+ENV COMPUTER_ROLES=""
+ENV ROOT_PASSWORD=""
+
+# install adjoiner's credential 
+COPY adjoiner.keytab /etc/centrifydc/adjoiner.keytab
+RUN chmod 400 /etc/centrifydc/adjoiner.keytab
+
+# save the adjoin info so it can be used by the centrifydc-adleave service
+RUN echo "ADJOINER=$ADJOINER" >> /etc/sysconfig/adjoin
+RUN echo "ADJOINER_KEYTAB=/etc/centrifydc/adjoiner.keytab" >> /etc/sysconfig/adjoin
+RUN chmod 644 /etc/sysconfig/adjoin
+
+# create a new service to unjoin the system from AD before shutdown
+COPY centrifydc-adleave.service /usr/lib/systemd/system/centrifydc-adleave.service
+RUN chmod 644 /usr/lib/systemd/system/centrifydc-adleave.service
+RUN systemctl enable centrifydc-adleave.service
+
+# install the adjoin startup script
+COPY adjoin_startup.sh /tmp/adjoin_startup.sh
+RUN chmod 500 /tmp/adjoin_startup.sh
+
+CMD ["/tmp/adjoin_startup.sh"]

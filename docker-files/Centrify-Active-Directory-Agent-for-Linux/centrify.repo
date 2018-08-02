@@ -1,0 +1,8 @@
+[centrify]
+name=centrify
+baseurl=https://$CENTRIFY_REPOSITORY_KEY@repo.centrify.com/rpm-redhat/
+enabled=1
+repo_gpgcheck=1
+gpgcheck=1
+gpgkey=https://edge.centrify.com/products/RPM-GPG-KEY-centrify
+

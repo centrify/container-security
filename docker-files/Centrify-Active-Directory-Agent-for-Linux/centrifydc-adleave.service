@@ -1,0 +1,24 @@
+[Unit]
+
+Description=Unjoin system from AD
+After=network.target syslog.target local-fs.target
+Before=centrifydc.service
+
+[Service]
+
+EnvironmentFile=/etc/sysconfig/adjoin
+
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/usr/share/centrifydc/kerberos/bin/kinit -kt $ADJOINER_KEYTAB -C $ADJOINER
+ExecStop=/usr/sbin/adleave -r
+StandardOutput=syslog+console
+
+# Set a reasonable timeout period to avoid large delay of remaining services.
+TimeoutSec=180s
+
+[Install]
+
+WantedBy=multi-user.target
+
