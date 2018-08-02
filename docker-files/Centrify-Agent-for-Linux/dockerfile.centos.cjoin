@@ -25,7 +25,7 @@ ARG TENANT_URL
 # fill in the correct values for the followings
 # note that they can be set in docker run command
 ENV CODE="" PORT="" NAME="" ADDRESS="" CONNECTOR="" LOGIN_ROLE="" 
-ENV OPTION "" ROOT_PASSWORD=""
+ENV OPTION="" ROOT_PASSWORD=""
 ENV URL $TENANT_URL
 # set to Yes if you want to enable "Use My Account" feature
 ENV ENABLE_USE_MY_ACCOUNT ""
