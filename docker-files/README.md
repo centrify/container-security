@@ -3,6 +3,6 @@ This directory contains documentation and all required docker files to set up do
 Please refer to the README file in individual subdirectories for more details.
 
 The subdirectories are:
-* [Centrify Agent for Linux](Centrify-Agent-for-Linux)
+* [Centrify Agent for Linux (using container identity)](Centrify-Agent-for-Linux)
 * [Centrify Agent for Linux (using host identity)](Centrify-Agent-for-Linux-using-host-identity)
-* [Centrify Active Directory Agent for Linux](Centrify-Active-Directory-Agent-for-Linux)
+* [Centrify Active Directory Agent for Linux (using container identity)](Centrify-Active-Directory-Agent-for-Linux)
