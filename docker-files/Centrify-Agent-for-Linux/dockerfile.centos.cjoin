@@ -29,11 +29,11 @@ ENV OPTION="" ROOT_PASSWORD=""
 ENV URL $TENANT_URL
 # set to Yes if you want to enable "Use My Account" feature
 ENV ENABLE_USE_MY_ACCOUNT ""
-# set to Yes if you want to let Centrify Infrastructure Service to store the root password
+# set to Yes if you want to let Centrify Privileged Access Service to store the root password
 ENV VAULT_ROOT_PASSWD ""
 # roles that can login as root
 ENV LOGIN_AS_ROOT_ROLES ""
-# set to Yes if you want to let Centrify Infrastructure Service to manage the root password
+# set to Yes if you want to let Centrify Privileged Access Service to manage the root password
 ENV MANAGE_ROOT_PASSWD ""
 
 STOPSIGNAL SIGRTMIN+3
