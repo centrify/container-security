@@ -1,0 +1,70 @@
+# dockerfile.centos.dcda
+#
+# Dockerfile to build CentOS docker image with
+# DirectControl and DirectAudit functionalities enabled
+#
+
+FROM centos:latest
+#MAINTAINER
+#LABEL 
+
+# install the required packages
+RUN yum -y update && yum install -y \
+    openssh-server \
+    openssh-clients \
+    vim \
+    && yum clean all
+
+# steps needed to use systemd enabled docker containers.
+ENV container docker
+RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i = \
+    systemd-tmpfiles-setup.service ] || rm -f $i; done);
+VOLUME [ "/sys/fs/cgroup" ]
+
+# systemd defines that shutdown signal as SIGRTMIN+3
+STOPSIGNAL SIGRTMIN+3
+
+# sshd setup
+RUN mkdir /var/run/sshd \
+    && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' \
+    && sed -i '/^#\?PermitRootLogin/c\PermitRootLogin yes' /etc/ssh/sshd_config \
+    && sed -i '/^#\?ChallengeResponseAuthentication/c\ChallengeResponseAuthentication yes' /etc/ssh/sshd_config \
+    && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+RUN systemctl enable sshd.service
+EXPOSE 22
+
+# add Centrify repo
+COPY centrify.repo /etc/yum.repos.d/centrify.repo
+
+# install Centrify packages
+RUN yum -y install \
+    CentrifyDC \
+    CentrifyDA \
+    && yum clean all
+
+# copy and restore the key directories
+COPY docker.copy.tar /var/centrify/tmp
+RUN chmod 400 /var/centrify/tmp/docker.copy.tar
+RUN tar xf /var/centrify/tmp/docker.copy.tar -C /
+
+# configure DirectControl
+RUN /usr/share/centrifydc/scripts/autoedit_default_nss.pl 
+RUN /usr/share/centrifydc/scripts/autoedit_default_pam.pl 
+
+# configure DirectAudit
+RUN /usr/share/centrifydc/scripts/da/autoedit_default_nss.pl --lib_name centrifyda
+
+# make a copy of dzsh in /opt/centrify/bin for login by restricted users
+RUN mkdir -p -m 755 /opt/centrify/bin \
+    && cp /usr/bin/dzsh /opt/centrify/bin
+RUN echo "/opt/centrify/bin/dzsh" >> /etc/shells
+
+# enable auditing
+RUN /usr/sbin/dacontrol -e
+
+# set root password
+RUN touch /etc/centrifydc/centrifydc.conf && \
+	touch /etc/centrifydc/*.ignore && \
+	echo 'root:$ROOT_PASSWORD' | chpasswd
+
+CMD ["/usr/sbin/init"]

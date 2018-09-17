@@ -1,0 +1,61 @@
+# dockerfile.ubuntu.dc
+#
+# Dockerfile to build Ubuntu docker image with
+# DirectControl functionality enabled
+#
+
+FROM ubuntu:latest
+#MAINTAINER
+#LABEL 
+
+# install the required packages
+RUN apt-get update && apt-get install -y \
+    apt-transport-https \
+    gnupg \
+    rsyslog \
+    openssh-server \
+    vim
+
+# steps needed to use systemd enabled docker containers.
+ENV container docker
+RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i = \
+    systemd-tmpfiles-setup.service ] || rm -f $i; done);
+VOLUME [ "/sys/fs/cgroup" ]
+
+# systemd defines that shutdown signal as SIGRTMIN+3
+STOPSIGNAL SIGRTMIN+3
+
+# sshd setup
+RUN mkdir /var/run/sshd \
+    && sed -i '/^#\?PermitRootLogin/c\PermitRootLogin yes' /etc/ssh/sshd_config \
+    && sed -i '/^#\?ChallengeResponseAuthentication/c\ChallengeResponseAuthentication yes' /etc/ssh/sshd_config \
+    && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+EXPOSE 22
+
+# add Centrify repo
+RUN echo "deb https://$CENTRIFY_REPOSITORY_KEY@repo.centrify.com/deb stable main" >> /etc/apt/sources.list
+RUN wget -qO - https://edge.centrify.com/products/RPM-GPG-KEY-centrify | apt-key add -
+
+# install Centrify packages
+RUN apt-get update && apt-get install -y \
+    centrifydc
+
+# copy and restore the key directories
+COPY docker.copy.tar /var/centrify/tmp
+RUN chmod 400 /var/centrify/tmp/docker.copy.tar
+RUN tar xf /var/centrify/tmp/docker.copy.tar -C /
+
+# configure DirectControl
+RUN /usr/share/centrifydc/scripts/autoedit_default_nss.pl 
+RUN /usr/share/centrifydc/scripts/autoedit_default_pam.pl 
+
+# make a copy of dzsh in /opt/centrify/bin for login by restricted users
+RUN mkdir -p -m 755 /opt/centrify/bin \
+    && cp /usr/bin/dzsh /opt/centrify/bin
+
+# set root password
+RUN touch /etc/centrifydc/centrifydc.conf && \
+	touch /etc/centrifydc/*.ignore && \
+	echo 'root:$ROOT_PASSWORD' | chpasswd
+
+CMD ["/sbin/init"]
