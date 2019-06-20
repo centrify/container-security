@@ -143,9 +143,15 @@ if [ "$VaultRootPasswd" == "Y" ] ; then
   done
 
 # set up post-enroll hook
-  if [ ! -f /etc/centrifycc/centrifycc.conf.bak ] ; then
-    cp /etc/centrifycc/centrifycc.conf /etc/centrifycc/centrifycc.conf.bak
-    echo "cli.hook.cenroll: /var/centrify/tmp/setpasswd.sh" >> /etc/centrifycc/centrifycc.conf
+#For version 19.3 and above
+  if [ -f /usr/bin/cedit ] ; then
+	cedit --set cli.hook.cenroll:/var/centrify/tmp/setpasswd.sh
+  else
+	if [ ! -f /etc/centrifycc/centrifycc.conf.bak ] ; then
+	  #For versions 18.7 to 18.11
+	  cp /etc/centrifycc/centrifycc.conf /etc/centrifycc/centrifycc.conf.bak
+	  echo "cli.hook.cenroll: /var/centrify/tmp/setpasswd.sh" >> /etc/centrifycc/centrifycc.conf
+	fi
   fi
 else
 # set up password

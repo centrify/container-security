@@ -22,7 +22,7 @@ VOLUME [ "/sys/fs/cgroup" ]
 
 # download and install CentrifyCC agent
 RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm \
-  http://edge.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
+  https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
   && yum -y install /tmp/CentrifyCC-rhel6.x86_64.rpm && yum clean all
 
 # note that systemd comes with journald in CentOS...no need to install rsyslog
@@ -31,8 +31,8 @@ RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm \
 RUN systemctl enable sshd.service
 
 # update nss and pam stack
-RUN /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit
-#
+RUN if [ -f /usr/share/centrifycc/sbin/config_editor.pl ] ; then /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit ; else /opt/centrify/sbin/config_editor.pl add /etc/centrifycc/autoedit ; fi
+
 # restore key directories
 RUN mkdir -p -m 0400 /var/centrify/tmp
 COPY docker.copy.tar /var/centrify/tmp

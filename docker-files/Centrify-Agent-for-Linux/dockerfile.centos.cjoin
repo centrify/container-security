@@ -56,7 +56,7 @@ VOLUME [ "/sys/fs/cgroup" ]
 RUN systemctl enable sshd.service
 
 # download and install Centrify Agent
-RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm http://edge.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
+RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
    && yum -y install /tmp/CentrifyCC-rhel6.x86_64.rpm && yum clean all
 
 # create a new service for unenroll Centrify agent

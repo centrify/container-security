@@ -15,11 +15,11 @@ RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so
 
 # download CentrifyCC agent
 RUN wget -O /tmp/centrifycc-deb7-x86_64.deb \
-  http://edge.centrify.com/products/cloud-service/CliDownload/Centrify/centrifycc-deb7-x86_64.deb \
+  https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/centrifycc-deb7-x86_64.deb \
   && apt-get install -y /tmp/centrifycc-deb7-x86_64.deb
 
 # update NSS and PAM stacks
-RUN /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit
+RUN if [ -f /usr/share/centrifycc/sbin/config_editor.pl ] ; then /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit ; else /opt/centrify/sbin/config_editor.pl add /etc/centrifycc/autoedit ; fi
 
 #
 # restore key directories

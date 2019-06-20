@@ -57,7 +57,7 @@ When a Centrify Identity Platform user logins inside a docker container, the hom
 1. DO NOT run __cunenroll__ inside the docker container.  This may affect the configuration in the host as well as other containers.
 1. DO NOT run __creload__ inside the docker container.  It does not change anything in the container or the host.
 1. If you unenroll the host and then re-enroll the host to Centrify Identity Platform again, all docker containers __MUST__ be restarted. Otherwise, Centrify Agent for Linux functionalities will not work in the docker container.
-1. If you run the command __/usr/share/centrifycc/bin/centrifycc status__ inside the docker container to get the status of the agent, it will show that CentrifyCC is not running.  Actually it shows that the CentrifyCC service is not running inside the container, which is expected. (Ref: 60633)
+1. If you run the command (For version 18.7 to 18.11) __/usr/share/centrifycc/bin/centrifycc status__ or (For version 19.3 or later) __cinfo -A__ inside the docker container to get the status of the agent, it will show that CentrifyCC / Cagent is not running.  Actually it shows that the CentrifyCC / Cagent service is not running inside the container, which is expected. (Ref: 60633)
 
 ## Limitations
 1. You cannot use Centrify Privileged Access Service to manage passwords for the local accounts inside the docker container. (Ref: 60408)
