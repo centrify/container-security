@@ -1,0 +1,28 @@
+[Unit]
+
+Description=Unenroll Centrify agent
+After=network.target syslog.target local-fs.target
+
+[Service]
+
+# Not forking like adclient due to a Golang daemon limitation
+# Type=forking
+
+EnvironmentFile=-/etc/default/cclient
+EnvironmentFile=-/etc/sysconfig/cclient
+
+# Use of PIDFile option is recommended for services where Type= is set to
+# forking
+# PIDFile=/var/run/cclient.pid
+
+Type=oneshot
+RemainAfterExit=yes
+ExecStop=/usr/sbin/cunenroll -md 
+StandardOutput=syslog
+
+# Set a reasonable timeout period to avoid large delay of remaining services.
+TimeoutSec=180s
+
+[Install]
+
+WantedBy=multi-user.target

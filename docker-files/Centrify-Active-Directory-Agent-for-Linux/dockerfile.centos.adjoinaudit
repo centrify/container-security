@@ -1,6 +1,7 @@
-# dockerfile.centos.adjoin
+# dockerfile.centos.adjoinaudit
 #
-# Dockerfile to build auto-adjoin CentOS docker image
+# Dockerfile to build auto-adjoin CentOS docker image with
+# auditing enabled
 #
 
 FROM centos:7
@@ -39,6 +40,7 @@ RUN chmod 644 /etc/yum.repos.d/centrify.repo
 # install Centrify packages
 RUN yum -y install \
     CentrifyDC \
+    CentrifyDA \
     && yum clean all
 
 #

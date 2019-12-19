@@ -12,7 +12,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/bin/true
 ExecStop=/usr/share/centrifydc/kerberos/bin/kinit -kt $ADJOINER_KEYTAB -C $ADJOINER
-ExecStop=/usr/sbin/adleave -r
+ExecStop=/usr/sbin/adleave -I -r
 StandardOutput=syslog+console
 
 # Set a reasonable timeout period to avoid large delay of remaining services.
