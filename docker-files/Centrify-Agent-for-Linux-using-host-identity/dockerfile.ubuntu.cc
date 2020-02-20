@@ -14,18 +14,18 @@ RUN sed -i '/^#\?ChallengeResponseAuthentication/c\ChallengeResponseAuthenticati
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
 # download CentrifyCC agent
-RUN wget -O /tmp/centrifycc-deb7-x86_64.deb \
-  https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/centrifycc-deb7-x86_64.deb \
-  && apt-get install -y /tmp/centrifycc-deb7-x86_64.deb
+RUN wget -O /tmp/centrifycc-deb8-x86_64.deb \
+  https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/centrifycc-deb8-x86_64.deb \
+  && apt-get install -y /tmp/centrifycc-deb8-x86_64.deb
 
 # update NSS and PAM stacks
-RUN if [ -f /usr/share/centrifycc/sbin/config_editor.pl ] ; then /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit ; else /opt/centrify/sbin/config_editor.pl add /etc/centrifycc/autoedit ; fi
+RUN if [ -f /usr/share/centrifycc/sbin/config_editor.pl ] ; then /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit ; else /opt/centrify/perl/scripts/config_editor.pl add /etc/centrifycc/autoedit ; fi
 
 #
 # restore key directories
 RUN mkdir -p -m 0400 /var/centrify/tmp
 COPY  docker.copy.tar /var/centrify/tmp
-RUN chmod 400 /var/centrify/tmp/docker.copy.tar 
+RUN chmod 400 /var/centrify/tmp/docker.copy.tar
 
 # set up rsyslog
 RUN apt-get install -y rsyslog

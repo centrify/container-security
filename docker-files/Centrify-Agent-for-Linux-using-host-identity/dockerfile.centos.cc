@@ -31,7 +31,7 @@ RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm \
 RUN systemctl enable sshd.service
 
 # update nss and pam stack
-RUN if [ -f /usr/share/centrifycc/sbin/config_editor.pl ] ; then /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit ; else /opt/centrify/sbin/config_editor.pl add /etc/centrifycc/autoedit ; fi
+RUN if [ -f /usr/share/centrifycc/sbin/config_editor.pl ] ; then /usr/share/centrifycc/sbin/config_editor.pl add /etc/centrifycc/autoedit ; else /opt/centrify/perl/scripts/config_editor.pl add /etc/centrifycc/autoedit ; fi
 
 # restore key directories
 RUN mkdir -p -m 0400 /var/centrify/tmp

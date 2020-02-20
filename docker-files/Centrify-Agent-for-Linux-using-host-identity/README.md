@@ -3,7 +3,7 @@
 ## Introduction
 Centrify Agent for Linux (version 18.7 and later) provides support for CoreOS.
 You can install Centrify Agent for Linux in a CoreOS host and enroll it to Centrify Identity Platform. 
-This document describes how one can enable Centrify Agenet for Linux functionalities inside docker containers after
+This document describes how one can enable Centrify Agent for Linux functionalities inside docker containers after
 the host has installed and enabled such functionalities.   All docker containers share the same identity as the host; and
 there is no need for individual container to enroll to Centrify Identify Platform separately.
 
