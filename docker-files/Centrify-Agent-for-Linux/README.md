@@ -11,10 +11,10 @@ A random password is generated for root when the docker image is run.  You can o
 
 -->
 ### Build your own docker image
-You can use the docker file [dockerfile.centos.cjoin](dockerfile.centos.cjoin) as a template and modify it for your own requirements.  You need to download the following files to your docker working directory:
-* [dockerfile.centos.cjoin](dockerfile.centos.cjoin): docker file
-* [cjoin_startup.sh](cjoin_startup.sh): start up file
-* [centrifycc-unenroll.service](centrifycc-unenroll.service): service definition for CentrifyCC service.  Used for unenroll the machine when the docker container is stopped.
+You can use the docker file [dockerfile.centos.cjoin](dockerfile.centos.cjoin?raw=1) as a template and modify it for your own requirements.  You need to download the following files to your docker working directory:
+* [dockerfile.centos.cjoin](dockerfile.centos.cjoin?raw=1): docker file
+* [cjoin_startup.sh](cjoin_startup.sh?raw=1): start up file
+* [centrifycc-unenroll.service](centrifycc-unenroll.service?raw=1): service definition for CentrifyCC service.  Used for unenroll the machine when the docker container is stopped.
 
 Follow these steps to build the CentOS docker image:
 1. Create a working directory in your CoreOS host (e.g., ~/sandbox) and make it the current working directory.
