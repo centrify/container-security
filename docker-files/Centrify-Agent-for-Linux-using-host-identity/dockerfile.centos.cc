@@ -22,7 +22,7 @@ VOLUME [ "/sys/fs/cgroup" ]
 
 # download and install CentrifyCC agent
 RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm \
-  https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
+  https://downloads.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
   && yum -y install /tmp/CentrifyCC-rhel6.x86_64.rpm && yum clean all
 
 # note that systemd comes with journald in CentOS...no need to install rsyslog

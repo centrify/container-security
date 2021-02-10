@@ -1,0 +1,2 @@
+#Information for the Centrify repository
+deb https://cloudrepo.centrify.com/$CENTRIFY_REPOSITORY_KEY/deb/deb/ubuntu any-version main

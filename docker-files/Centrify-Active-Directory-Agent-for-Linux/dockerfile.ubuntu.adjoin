@@ -1,51 +1,66 @@
-# dockerfile.centos.adjoin
+# dockerfile.ubuntu.adjoin
 #
-# Dockerfile to build auto-adjoin CentOS docker image
+# Dockerfile to build auto-adjoin Ubuntu 20.04 LTS docker image
 #
 
-FROM centos:latest
+FROM ubuntu:latest
 #MAINTAINER
 #LABEL
 
 # install the required packages
-RUN yum -y update && yum -y install \
-    openssh-server \
-    && yum clean all
 
-# steps needed to use systemd enabled docker containers.
+RUN apt update && apt -y install \
+    openssh-server \
+    gnupg2 \
+    curl \
+    && apt clean all
+    
+
+# steps needed to use systemd enabled docker containers
+
 ENV container docker
+
 RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i = \
     systemd-tmpfiles-setup.service ] || rm -f $i; done);
-VOLUME [ "/sys/fs/cgroup" ]
+
+VOLUME [ "/sys/fs/cgroup"]
 
 # systemd defines that shutdown signal as SIGRTMIN+3
 STOPSIGNAL SIGRTMIN+3
 
 # sshd setup
+
 RUN mkdir /var/run/sshd \
-    && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' \
+    && ssh-keygen -y -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' \
     && sed -i '/^#\?ChallengeResponseAuthentication/c\ChallengeResponseAuthentication yes' /etc/ssh/sshd_config \
     && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-RUN systemctl enable sshd.service
+RUN systemctl enable ssh.service
 EXPOSE 22
 
+#creating a copy of /etc/dpkg/dpkg.cfg and updating it to use GPG-signature key check.
+
+RUN cp -p /etc/dpkg/dpkg.cfg /etc/dpkg/dpkg.centrify_backup
+RUN sed -i '/no-debsig/s/^/#/g' /etc/dpkg/dpkg.cfg
+
 # add Centrify repo
-COPY centrify.repo /etc/yum.repos.d/centrify.repo
-RUN chmod 644 /etc/yum.repos.d/centrify.repo
 
-# install Centrify packages
-RUN yum -y install \
-    CentrifyDC \
-    && yum clean all
+RUN wget -O - https://downloads.centrify.com/products/RPM-GPG-KEY-centrify | apt-key add - 
+COPY centrify.list /etc/apt/sources.list.d/centrify.list
+RUN chmod 644 /etc/apt/sources.list.d/centrify.list
 
-#
+#install centrify direct control package.
+
+RUN apt update && apt-get -y install centrifydc
+
+
 # build time arguments
 # DOMAIN: AD domain
 # ADJOINER: AD user that has proper permissions to join the zone
 # ZONE: zone to join the system to
 # TENANT_URL: tenant URL
 # ENABLE_USE_MY_ACCOUNT: To enable the Use My Account feature
-#
+
+
 ARG DOMAIN
 ARG ADJOINER
 ARG ZONE
@@ -56,12 +71,15 @@ RUN : "${DOMAIN:?Build argument DOMAIN must be set.}"
 RUN : "${ADJOINER:?Build argument ADJOINER must be set.}"
 
 # install the Centrify Client only if UMA(Use My Account) feature is enabled.
-RUN if [ "$ENABLE_USE_MY_ACCOUNT" = "Yes" ]  || [ "$ENABLE_USE_MY_ACCOUNT" = "yes" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "True" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "true" ]; then \
-     curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm https://downloads.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm\
-    && yum -y install /tmp/CentrifyCC-rhel6.x86_64.rpm && yum clean all; fi
 
-#
+RUN if [ "$ENABLE_USE_MY_ACCOUNT" = "Yes" ]  || [ "$ENABLE_USE_MY_ACCOUNT" = "yes" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "True" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "true" ]; then apt-get -y install centrifycc; fi
+
+#restoring the /etc/dpkg/dpkg.cfg by the /etc/dpkg/dpkg.centrify_backup
+
+RUN mv /etc/dpkg/dpkg.centrify_backup /etc/dpkg/dpkg.cfg
+
 # environment variables
+
 ENV DOMAIN $DOMAIN
 ENV ADJOINER $ADJOINER
 ENV ZONE $ZONE
@@ -81,29 +99,38 @@ ENV ADDRESS=""
 ENV PORT=""
 ENV CONNECTOR=""
 
+
 # install adjoiner's credential 
+
 COPY adjoiner.keytab /etc/centrifydc/adjoiner.keytab
 RUN chmod 400 /etc/centrifydc/adjoiner.keytab
 
+
 # save the adjoin info so it can be used by the centrifydc-adleave service
-RUN echo "ADJOINER=$ADJOINER" >> /etc/sysconfig/adjoin
-RUN echo "ADJOINER_KEYTAB=/etc/centrifydc/adjoiner.keytab" >> /etc/sysconfig/adjoin
-RUN chmod 644 /etc/sysconfig/adjoin
+
+RUN echo "ADJOINER=$ADJOINER" >> /usr/sbin/adjoin
+RUN echo "ADJOINER_KEYTAB=/etc/centrifydc/adjoiner.keytab" >> /usr/sbin/adjoin
+
 
 # create a new service to unjoin the system from AD before shutdown
+
 COPY centrifydc-adleave.service /usr/lib/systemd/system/centrifydc-adleave.service
 RUN chmod 644 /usr/lib/systemd/system/centrifydc-adleave.service
 RUN systemctl enable centrifydc-adleave.service
-    
+
+
 # create a new service for enroll Centrify agent for cloud for Enable Use My Account
+
 COPY centrifycc-cenroll.service /usr/lib/systemd/system/centrifycc-cenroll.service
 RUN chmod 644 /usr/lib/systemd/system/centrifycc-cenroll.service
 
 # create a new service for unenroll Centrify agent for cloud for Enable Use My Account
+    
 COPY centrifycc-unenroll.service /usr/lib/systemd/system/centrifycc-unenroll.service
 
 # install the adjoin startup script
-COPY adjoin_startup.sh /tmp/adjoin_startup.sh
-RUN chmod 500 /tmp/adjoin_startup.sh
 
-CMD ["/tmp/adjoin_startup.sh"]
+COPY adjoin_startup.sh /etc/adjoin_startup.sh
+RUN chmod 500 /etc/adjoin_startup.sh
+
+CMD ["/etc/adjoin_startup.sh"]

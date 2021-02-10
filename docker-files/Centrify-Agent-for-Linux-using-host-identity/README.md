@@ -9,7 +9,7 @@ there is no need for individual container to enroll to Centrify Identify Platfor
 
 Note: You can also install and enroll the docker container directly to Centrify Identity Platform, which results in unique 
 identity (system) in Centrify Identity Platform. 
-See [Enable Centrify Agent For Linux in a CentOS container](http://github.com/centrify/docker_files/tree/master/centrify_agent_for_linux/README.md) 
+See [Enable Centrify Agent For Linux in a CentOS container](https://github.com/centrify/container-security/blob/master/docker-files/Centrify-Agent-for-Linux/README.md) 
 for details.
 
 ## Files for docker container support

@@ -31,9 +31,10 @@ Follow these steps to enable DirectControl functionality inside docker container
    sudo tar cvf docker.copy.tar /etc/centrifydc /etc/krb5*  
    ```
 1. For creating and running a Ubuntu container:
+   1. Follow the instructions in https://centrify.force.com/support/CentrifyRepo to generate the repo key for deb.
    1. Copy the attached file **dockerfile.ubuntu.dc** to ~/sandbox
    1. Edit the file **dockerfile.ubuntu.dc**:
-      1. Replace $CENTRIFY_REPOSITORY_KEY by your Centrify support repository credential.
+      1. Replace $CENTRIFY_REPOSITORY_KEY by your Centrify support repository credential for deb.
       1. Replace $ROOT_PASSWORD by the password of the root user in the container.
    1. Run this command to build the docker image:
       ```
@@ -45,8 +46,9 @@ Follow these steps to enable DirectControl functionality inside docker container
       ```
       Replace $SSHD_PORT by the port to be used for sshd service for this container.
 1. For creating and running a CentOS container:
+   1. Follow the instructions in https://centrify.force.com/support/CentrifyRepo to generate the repo key for rpm-redhat.
    1. Copy the attached files **dockerfile.centos.dc** and **centrify.repo** to ~/sandbox
-   1. Edit the file **centrify.repo** and replace $CENTRIFY_REPOSITORY_KEY by your Centrify support repository credential.
+   1. Edit the file **centrify.repo** and replace $CENTRIFY_REPOSITORY_KEY by your Centrify support repository credential for rpm-redhat.
    1. Edit the file **dockerfile.centos.dc** to replace $ROOT_PASSWORD by the password of the root user in the container.
    1. Run this command to build the docker image:
       ```

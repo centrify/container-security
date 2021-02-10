@@ -15,7 +15,7 @@ RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so
 
 # download CentrifyCC agent
 RUN wget -O /tmp/centrifycc-deb8-x86_64.deb \
-  https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/centrifycc-deb8-x86_64.deb \
+  https://downloads.centrify.com/products/cloud-service/CliDownload/Centrify/centrifycc-deb8-x86_64.deb \
   && apt-get install -y /tmp/centrifycc-deb8-x86_64.deb
 
 # update NSS and PAM stacks

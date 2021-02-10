@@ -1,0 +1,14 @@
+[Unit]
+Description=service to make use of cenroll command
+Requires=sysinit.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/default/cenroll
+EnvironmentFile=-/etc/sysconfig/cenroll
+ExecStart= /usr/sbin/cenroll -t $URL -F none --code $CODE --name $NAME --address $ADDRESS $PORT -S "CertAuthEnable:true" \"$CONNECTOR\" -f
+ExecStop= echo "this is updated commands stop"	
+
+[Install]
+WantedBy=multi-user.target

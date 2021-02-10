@@ -33,8 +33,8 @@ RUN mkdir /var/run/sshd \
 EXPOSE 22
 
 # add Centrify repo
-RUN echo "deb https://$CENTRIFY_REPOSITORY_KEY@repo.centrify.com/deb stable main" >> /etc/apt/sources.list
-RUN wget -qO - https://edge.centrify.com/products/RPM-GPG-KEY-centrify | apt-key add -
+RUN echo "deb https://cloudrepo.centrify.com/$CENTRIFY_REPOSITORY_KEY/deb/deb/ubuntu any-version main" >> /etc/apt/sources.list
+RUN wget -O - https://downloads.centrify.com/products/RPM-GPG-KEY-centrify | apt-key add -
 
 # install Centrify packages
 RUN apt-get update && apt-get install -y \

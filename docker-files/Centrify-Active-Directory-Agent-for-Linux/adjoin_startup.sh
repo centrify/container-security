@@ -16,11 +16,11 @@ fi
 
 # setup value for UseMyAccount
 echo "ENABLE_USE_MY_ACCOUNT: $ENABLE_USE_MY_ACCOUNT" 
-UseMyAccount='N'
 
-if [ "$ENABLE_USE_MY_ACCOUNT" != "" ] ; then
-    UseMyAccount=${ENABLE_USE_MY_ACCOUNT::1}
+if [ "$ENABLE_USE_MY_ACCOUNT" = "Yes" ]  || [ "$ENABLE_USE_MY_ACCOUNT" = "yes" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "True" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "true" ]; then
+    UseMyAccount="yes" 
 fi
+
 echo "current tenant URL: " $URL
 echo "UseMyAccount: $UseMyAccount" 
 echo "Enrollment Code: " $CODE
@@ -45,7 +45,7 @@ if [ "$ZONE" = "" ]; then
     exec /usr/sbin/init
 fi
 
-if [[ "$UseMyAccount" == "Y" || "$UseMyAccount" == "y" || "$UseMyAccount" == "T" || "$UseMyAccount" == "t" ]] ; then
+if [[ "$UseMyAccount" == "yes" ]] ; then
     if [ "$URL" = "" ]; then
         echo "UseMyAccount is enabled but tenant URL is not specified."
         exec /usr/sbin/init
@@ -100,18 +100,20 @@ fi
 
 # setup for "Use My Account" feature
 
-if [[ "$UseMyAccount" == "Y" || "$UseMyAccount" == "y" || "$UseMyAccount" == "T" || "$UseMyAccount" == "t" ]] ; then
-    # set up sshd config
-    if [ ! -f /etc/ssh/sshd_config.bak ] ; then
+if [[ "$UseMyAccount" == "yes" ]] ; then
+
+    # modifying the SSHD configuration file for Centrify Client
+    /usr/share/centrifydc/bin/curl -o /etc/ssh/centrify_tenant_ca.pub https://$URL/servermanage/getmastersshkey 
+    if [ ! -f /etc/ssh/sshd_config.bak ]; then
         cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
-        sed -i -e '/^TrustedUserCAKeys/d' -e '/^AuthorizedPrincipalsCommand/d' /etc/ssh/sshd_config
-        echo "AuthorizedPrincipalsCommand /usr/bin/adquery user -P %u" >> /etc/ssh/sshd_config
-        echo "AuthorizedPrincipalsCommandUser root" >> /etc/ssh/sshd_config
-        echo "TrustedUserCAKeys /etc/ssh/cps_ca.pub" >> /etc/ssh/sshd_config
     fi
-    /usr/share/centrifydc/bin/curl -o /etc/ssh/cps_ca.pub https://$URL/servermanage/getmastersshkey    
+    echo "TrustedUserCAKeys /etc/ssh/centrify_tenant_ca.pub" >> /etc/ssh/sshd_config
+    echo "AuthorizedPrincipalsCommand /usr/bin/adquery user -P %u" >> /etc/ssh/sshd_config
+    echo "AuthorizedPrincipalsCommandUser root" >> /etc/ssh/sshd_config
+
 fi
 
+# setting and obtaining the credential to join the system with AD
 (
     echo "`date`: ready to join "
     echo " parameters: [${CMDPARAM[@]}]"
@@ -135,16 +137,17 @@ fi
     /usr/sbin/adjoin -V -I $DOMAIN -z $ZONE "${CMDPARAM[@]}" --force || RC=$?
     if [ $RC -eq 0 ]; then
         # enable the service so that it will be started by systemd later on
+        echo "enabling adclient service"
         systemctl enable centrifydc.service
     else
         echo "adjoin failed."
-        false
     fi
 
 ) 2>&1 | tee -a /var/centrify/adjoin.log
 
 if [ -x /usr/sbin/dad ]; then
     (
+        echo "Installation name for Direct Auditing: " $INSTALLATION
         echo "`date`: enable auditing service"
         set -e
 
@@ -162,6 +165,12 @@ if [ -x /usr/sbin/dad ]; then
             echo "disable NSS auditing "
             /usr/sbin/dacontrol -d || true
         fi
+
+        # appending the installation parameter to the configuration file if the system is enrolled in the cloud.
+        
+        if [[ "$UseMyAccount" == "yes" ]] ; then
+            echo "dad.installation.source: direct_control" >> /etc/centrifyda/centrifyda.conf
+        fi  
 
         # set audit installation
         if [ -n "$INSTALLATION" ]; then
@@ -194,38 +203,67 @@ fi
 # change password if specified
 if [ "$ROOT_PASSWORD" != "" ] ; then
     echo "set root password "
-    echo "$ROOT_PASSWORD" | passwd --stdin root
+    echo "root:$ROOT_PASSWORD" | chpasswd
 else
     echo "generate root password "
-    /usr/share/centrifydc/bin/openssl rand -base64 16 | passwd --stdin root
+    echo root:$(/usr/share/centrifydc/bin/openssl rand -base64 16) | chpasswd
 fi
 
-# enroll cagent to add the docker to show as a system in cloud CS-46661
-if [[ "$UseMyAccount" == "Y" || "$UseMyAccount" == "y" || "$UseMyAccount" == "T" || "$UseMyAccount" == "t" ]] ; then
+if [[ "$UseMyAccount" == "yes" ]] ; then
     (
     # create a new service for unenroll Centrify agent
     systemctl enable centrifycc-unenroll.service
 
-    # note that the selinux policy set to enforcing
-    # change to permissive for now
-    sed -i 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/selinux/config
-
-    if [ -f /etc/systemd/system/multi-user.target.wants/centrifycc.service ]; then
-        rm /etc/systemd/system/multi-user.target.wants/centrifycc.service
+    if [ $RC -eq 0 ]; then
+        # enable the service so that it will be started by systemd later on
+        echo "enabling centrifycc-cenroll.service"
+        systemctl enable centrifycc-cenroll.service
+    else
+        echo "cenroll service failed."
     fi
-    touch /etc/centrifycc/*
-    touch /etc/centrifycc/autoedit/*
-    /usr/sbin/cunenroll -f
-    ) 2>&1 | tee -a /var/centrify/adjoin.log
-    # Connectors is optional
+
+    # setting up the port number
+    CENROLLPARAM=()
+    CENROLLPARAM=("-S" "\"Port:$PORT\"")
+    PORTNUMBER="${CENROLLPARAM[@]}"
+
+    # setting up the connector name
     CENROLLPARAM=()
     if [ "$CONNECTOR" != "" ] ; then
         CENROLLPARAM=("-S" "\"Connectors:$CONNECTOR\"")
     fi
-    # cenroll needs systemd service hence it is to be run at the end and in background process
-    /usr/sbin/cenroll -t $URL -F aapm --code $CODE --name $NAME --address $ADDRESS -S "Port:$PORT" -S "CertAuthEnable:true" "${CENROLLPARAM[@]}" -f &
+    CONNECTORNAME="${CENROLLPARAM[@]}"
+
+    #creating the suitable environment file for centrifycc-cenroll.service
+    FILENAME="/etc/sysconfig/cenroll"
+    if [ -d /etc/default ]; then
+        FILENAME="/etc/default/cenroll"
+    fi
+    touch $FILENAME
+    echo "URL=$URL" >> $FILENAME
+    echo "CODE=$CODE" >> $FILENAME
+    echo "NAME=$NAME" >> $FILENAME
+    echo "ADDRESS=$ADDRESS" >> $FILENAME
+    echo "PORT=$PORTNUMBER" >> $FILENAME
+    echo "CONNECTOR=$CONNECTORNAME" >> $FILENAME
+
+    #setting up the SELinux policy for centos docker containers.
+    if [ -f /etc/selinux/config ]; then
+        sed -i 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/selinux/config
+    fi
+
+    if [ -f /etc/systemd/system/multi-user.target.wants/centrifycc.service ]; then
+        rm /etc/systemd/system/multi-user.target.wants/centrifycc.service
+    fi
+        
+    touch /etc/centrifycc/*
+    touch /etc/centrifycc/autoedit/*
+    /usr/sbin/cunenroll -f
+    ) 2>&1 | tee -a /var/centrify/adjoin.log
+
+    # enabling the service to run cenroll command
+    systemctl enable centrifycc-cenroll.service
 fi
 
 echo "start the container"
 exec /usr/sbin/init
-

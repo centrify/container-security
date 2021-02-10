@@ -4,15 +4,13 @@
 # auditing enabled
 #
 
-FROM centos:7
+FROM centos:latest
 #MAINTAINER
 #LABEL
 
 # install the required packages
 RUN yum -y update && yum -y install \
-    openssh-clients \
     openssh-server \
-    vim \
     && yum clean all
 
 # steps needed to use systemd enabled docker containers.
@@ -27,7 +25,6 @@ STOPSIGNAL SIGRTMIN+3
 # sshd setup
 RUN mkdir /var/run/sshd \
     && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' \
-    && sed -i '/^#\?PermitRootLogin/c\PermitRootLogin yes' /etc/ssh/sshd_config \
     && sed -i '/^#\?ChallengeResponseAuthentication/c\ChallengeResponseAuthentication yes' /etc/ssh/sshd_config \
     && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 RUN systemctl enable sshd.service
@@ -49,14 +46,21 @@ RUN yum -y install \
 # ADJOINER: AD user that has proper permissions to join the zone
 # ZONE: zone to join the system to
 # TENANT_URL: tenant URL
+# ENABLE_USE_MY_ACCOUNT: To enable the Use My Account feature
 #
 ARG DOMAIN
 ARG ADJOINER
 ARG ZONE
 ARG TENANT_URL
+ARG ENABLE_USE_MY_ACCOUNT
 
 RUN : "${DOMAIN:?Build argument DOMAIN must be set.}"
 RUN : "${ADJOINER:?Build argument ADJOINER must be set.}"
+
+# install the Centrify Client only if UMA(Use My Account) feature is enabled.
+RUN if [ "$ENABLE_USE_MY_ACCOUNT" = "Yes" ]  || [ "$ENABLE_USE_MY_ACCOUNT" = "yes" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "True" ] || [ "$ENABLE_USE_MY_ACCOUNT" = "true" ]; then \
+     curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm https://downloads.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm\
+    && yum -y install /tmp/CentrifyCC-rhel6.x86_64.rpm && yum clean all; fi
 
 #
 # environment variables
@@ -64,6 +68,7 @@ ENV DOMAIN $DOMAIN
 ENV ADJOINER $ADJOINER
 ENV ZONE $ZONE
 ENV URL $TENANT_URL
+ENV ENABLE_USE_MY_ACCOUNT $ENABLE_USE_MY_ACCOUNT
 
 # the following variables are optional
 # OU: OU/container to create computer account in, in DN format
@@ -73,7 +78,6 @@ ENV URL $TENANT_URL
 ENV OU="" NAME="" ADJOIN_OPTION=""
 ENV COMPUTER_ROLES=""
 ENV ROOT_PASSWORD=""
-ENV ENABLE_USE_MY_ACCOUNT=""
 ENV CODE=""
 ENV ADDRESS=""
 ENV PORT=""
@@ -93,10 +97,10 @@ COPY centrifydc-adleave.service /usr/lib/systemd/system/centrifydc-adleave.servi
 RUN chmod 644 /usr/lib/systemd/system/centrifydc-adleave.service
 RUN systemctl enable centrifydc-adleave.service
 
-# download and install Centrify Cloud Agent
-RUN curl --fail -s -o /tmp/CentrifyCC-rhel6.x86_64.rpm https://edge.centrify.com/products/cloud-service/CliDownload/Centrify/CentrifyCC-rhel6.x86_64.rpm \
-    && yum -y install /tmp/CentrifyCC-rhel6.x86_64.rpm && yum clean all
-    
+# create a new service for enroll Centrify agent for cloud for Enable Use My Account
+COPY centrifycc-cenroll.service /usr/lib/systemd/system/centrifycc-cenroll.service
+RUN chmod 644 /usr/lib/systemd/system/centrifycc-cenroll.service
+
 # create a new service for unenroll Centrify agent for cloud for Enable Use My Account
 COPY centrifycc-unenroll.service /usr/lib/systemd/system/centrifycc-unenroll.service
 
